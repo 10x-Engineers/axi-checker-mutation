@@ -1,0 +1,248 @@
+# AXI4 mutant catalog. Each entry breaks exactly one clause from clauses.toml,
+# injected by rtl/axi_mut_interposer.sv on the observed bus.
+#
+#   id        unique, kebab-case
+#   class     handshake | stability | burst | last | response | exclusive | ordering
+#   clauses   clause key(s) a CORRECT kill must be attributed to
+#   chan, op  interposer channel and operator (VALID_DROP | GLITCH | OVERRIDE)
+#   nth       which matching beat to hit (default 1)
+#   tfield/tval  trigger: the beat whose field equals tval (default: any beat)
+#   xfield/xval  GLITCH: bits of the field to flip; OVERRIDE: value forced into it
+#   window    clock cycles after injection in which the correct rule must fire (default 1)
+#
+# Triggers name addresses that tb/test_axi.py issues exactly once, so every mutant
+# lands on the same transaction for every checker set.
+
+# ---- handshake: VALID dropped before the handshake -------------------------
+[[mutant]]
+id = "aw-valid-drop"
+class = "handshake"
+clauses = ["HS_VALID_HOLD"]
+chan = "AW"
+op = "VALID_DROP"
+
+[[mutant]]
+id = "w-valid-drop"
+class = "handshake"
+clauses = ["HS_VALID_HOLD"]
+chan = "W"
+op = "VALID_DROP"
+
+[[mutant]]
+id = "b-valid-drop"
+class = "handshake"
+clauses = ["HS_VALID_HOLD"]
+chan = "B"
+op = "VALID_DROP"
+
+[[mutant]]
+id = "ar-valid-drop"
+class = "handshake"
+clauses = ["HS_VALID_HOLD"]
+chan = "AR"
+op = "VALID_DROP"
+
+[[mutant]]
+id = "r-valid-drop"
+class = "handshake"
+clauses = ["HS_VALID_HOLD"]
+chan = "R"
+op = "VALID_DROP"
+
+# ---- stability: payload changes while VALID && !READY ----------------------
+[[mutant]]
+id = "aw-addr-unstable"
+class = "stability"
+clauses = ["HS_INFO_STABLE"]
+chan = "AW"
+op = "GLITCH"
+xfield = "AWADDR"
+xval = "4"
+
+[[mutant]]
+id = "w-data-unstable"
+class = "stability"
+clauses = ["HS_INFO_STABLE"]
+chan = "W"
+op = "GLITCH"
+xfield = "WDATA"
+xval = "1"
+
+[[mutant]]
+id = "b-resp-unstable"
+class = "stability"
+clauses = ["HS_INFO_STABLE"]
+chan = "B"
+op = "GLITCH"
+xfield = "BRESP"
+xval = "2"
+
+[[mutant]]
+id = "ar-len-unstable"
+class = "stability"
+clauses = ["HS_INFO_STABLE"]
+chan = "AR"
+op = "GLITCH"
+xfield = "ARLEN"
+xval = "1"
+
+[[mutant]]
+id = "r-data-unstable"
+class = "stability"
+clauses = ["HS_INFO_STABLE"]
+chan = "R"
+op = "GLITCH"
+xfield = "RDATA"
+xval = "1"
+
+# ---- burst structure -------------------------------------------------------
+[[mutant]]
+id = "awburst-reserved"
+class = "burst"
+clauses = ["BURST_RESERVED"]
+chan = "AW"
+op = "OVERRIDE"
+xfield = "AWBURST"
+xval = "3"
+
+[[mutant]]
+id = "arburst-reserved"
+class = "burst"
+clauses = ["BURST_RESERVED"]
+chan = "AR"
+op = "OVERRIDE"
+xfield = "ARBURST"
+xval = "3"
+
+[[mutant]]
+id = "aw-wrap-len3"
+class = "burst"
+clauses = ["WRAP_LEN"]
+chan = "AW"
+op = "OVERRIDE"
+tfield = "AWADDR"
+tval = "600"          # the 12-byte (3-beat) INCR write
+xfield = "AWBURST"
+xval = "2"
+
+[[mutant]]
+id = "ar-fixed-len32"
+class = "burst"
+clauses = ["FIXED_LEN"]
+chan = "AR"
+op = "OVERRIDE"
+tfield = "ARADDR"
+tval = "1000"         # the 128-byte (32-beat) INCR read
+xfield = "ARBURST"
+xval = "0"
+
+[[mutant]]
+id = "ar-4kb-cross"
+class = "burst"
+clauses = ["NO_4KB_CROSS"]
+chan = "AR"
+op = "OVERRIDE"
+tfield = "ARADDR"
+tval = "140"          # the 64-byte read; moved to 0xFE0 it spans 0xFE0..0x101F
+xfield = "ARADDR"
+xval = "fe0"
+
+# ---- LAST ------------------------------------------------------------------
+[[mutant]]
+id = "wlast-early"
+class = "last"
+clauses = ["WLAST", "EARLY_TERM"]
+chan = "W"
+op = "OVERRIDE"
+tfield = "WLAST"
+tval = "0"            # first non-final W beat
+xfield = "WLAST"
+xval = "1"
+
+[[mutant]]
+id = "wlast-missing"
+class = "last"
+clauses = ["WLAST"]
+chan = "W"
+op = "OVERRIDE"
+nth = 3
+tfield = "WLAST"
+tval = "1"            # final beat of the third write (16 bytes, 4 beats)
+xfield = "WLAST"
+xval = "0"
+
+[[mutant]]
+id = "rlast-early"
+class = "last"
+clauses = ["RLAST", "EARLY_TERM"]
+chan = "R"
+op = "OVERRIDE"
+tfield = "RLAST"
+tval = "0"
+xfield = "RLAST"
+xval = "1"
+
+[[mutant]]
+id = "rlast-missing"
+class = "last"
+clauses = ["RLAST"]
+chan = "R"
+op = "OVERRIDE"
+nth = 3
+tfield = "RLAST"
+tval = "1"
+xfield = "RLAST"
+xval = "0"
+
+# ---- response --------------------------------------------------------------
+[[mutant]]
+id = "exokay-normal-write"
+class = "response"
+clauses = ["EXOKAY_WRITE"]
+chan = "B"
+op = "OVERRIDE"
+xfield = "BRESP"
+xval = "1"
+
+[[mutant]]
+id = "exokay-normal-read"
+class = "response"
+clauses = ["EXOKAY_READ"]
+chan = "R"
+op = "OVERRIDE"
+xfield = "RRESP"
+xval = "1"
+
+# ---- exclusive-access restrictions (Manager side) --------------------------
+[[mutant]]
+id = "excl-bytes-not-pow2"
+class = "exclusive"
+clauses = ["EXCL_POW2"]
+chan = "AW"
+op = "OVERRIDE"
+tfield = "AWADDR"
+tval = "600"          # 12 bytes
+xfield = "AWLOCK"
+xval = "1"
+
+[[mutant]]
+id = "excl-misaligned"
+class = "exclusive"
+clauses = ["EXCL_ALIGN"]
+chan = "AW"
+op = "OVERRIDE"
+tfield = "AWADDR"
+tval = "504"          # 16 bytes at 0x504: power of 2, not aligned to 16
+xfield = "AWLOCK"
+xval = "1"
+
+[[mutant]]
+id = "excl-len32"
+class = "exclusive"
+clauses = ["EXCL_LEN"]
+chan = "AR"
+op = "OVERRIDE"
+tfield = "ARADDR"
+tval = "1000"         # 128 bytes at 0x1000: power of 2 and aligned, but 32 beats
+xfield = "ARLOCK"
+xval = "1"

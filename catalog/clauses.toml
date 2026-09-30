@@ -1,0 +1,107 @@
+# The spec clauses the catalog breaks, keyed by a stable name.
+# Source: ARM IHI 0022 Issue L (AMBA AXI Protocol Specification), 27 Aug 2025, AXI4 subset.
+# `level` is the spec's own strength: MUST (violation is illegal) or IMPLIED (the rule is
+# stated as a definition or permission whose converse is illegal) -- a mutant may only
+# break a MUST or an IMPLIED rule, never a SHOULD/recommendation.
+
+[HS_VALID_HOLD]
+sec = "A2.3"
+page = 29
+level = "MUST"
+text = "When VALID is asserted, it must remain asserted until the handshake occurs, at a rising clock edge when VALID and READY are both asserted."
+
+[HS_INFO_STABLE]
+sec = "A2.3"
+page = 29
+level = "MUST"
+text = "The transmitter must keep its information stable until the transfer occurs."
+
+[DEP_B_AFTER_W]
+sec = "A2.3.2"
+page = 31
+level = "MUST"
+text = "The Subordinate must wait for the last write data transfer before asserting BVALID."
+
+[DEP_R_AFTER_AR]
+sec = "A2.3.2"
+page = 31
+level = "MUST"
+text = "The Subordinate must wait for both ARVALID and ARREADY to be asserted before it asserts RVALID."
+
+[NO_4KB_CROSS]
+sec = "A3.1"
+page = 43
+level = "MUST"
+text = "A transaction must not cross a 4KB address boundary."
+
+[FIXED_LEN]
+sec = "A3.1.2"
+page = 44
+level = "IMPLIED"
+text = "For fixed bursts, Length can be up to 16."
+
+[EARLY_TERM]
+sec = "A3.1.2"
+page = 44
+level = "MUST"
+text = "Early termination of transactions is not supported. No component can terminate a transaction early."
+
+[BURST_RESERVED]
+sec = "A3.1.4"
+page = 46
+level = "IMPLIED"
+text = "AxBURST encoding 0b11 is Reserved."
+
+[WRAP_LEN]
+sec = "A3.1.4"
+page = 47
+level = "MUST"
+text = "(Wrapping burst) The Length of the burst must be 2, 4, 8, or 16 transfers."
+
+[WLAST]
+sec = "A3.2.1"
+page = 53
+level = "MUST"
+text = "The Manager must assert the WLAST signal while it is driving the final write transfer in the transaction."
+
+[RLAST]
+sec = "A3.2.2"
+page = 55
+level = "MUST"
+text = "The Subordinate must assert the RLAST signal when it is driving the final read transfer in the transaction."
+
+[EXOKAY_WRITE]
+sec = "A3.3.1"
+page = 62
+level = "MUST"
+text = "EXOKAY: Exclusive write succeeded. This response is only permitted for an exclusive write."
+
+[EXOKAY_READ]
+sec = "A3.3.2"
+page = 63
+level = "MUST"
+text = "EXOKAY: Exclusive read succeeded. This response is only permitted for an exclusive read."
+
+[SAMEID_ORDER]
+sec = "A5.3"
+page = 93
+level = "MUST"
+text = "Transaction responses with the same ID are returned in the same order as the requests were issued."
+
+[EXCL_POW2]
+sec = "A6.3.3"
+page = 111
+level = "MUST"
+text = "The number of bytes to be transferred in an exclusive access transaction must be a power-of-2."
+
+[EXCL_ALIGN]
+sec = "A6.3.3"
+page = 111
+level = "MUST"
+text = "The address of an exclusive access must be aligned to the total number of bytes in the transaction."
+
+[EXCL_LEN]
+sec = "A6.3.3"
+page = 111
+level = "MUST"
+text = "The Length of an exclusive access must not exceed 16 transfers."

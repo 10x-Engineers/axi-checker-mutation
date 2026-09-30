@@ -1,0 +1,3 @@
+[submodule "third_party/verilog-axi"]
+	path = third_party/verilog-axi
+	url = https://github.com/alexforencich/verilog-axi.git
