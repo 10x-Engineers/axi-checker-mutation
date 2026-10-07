@@ -1,0 +1,69 @@
+# Drafted by tools/new_checker_set.py from the property bodies, then reviewed line by line
+# (20 corrections: UCAgent writes implementation properties, which the drafter maps poorly).
+[rules]
+M_CK_API_RESET_PULSE = "OTHER"  # 初始复位假设：上电初始 rst 有效，并至少持续 1 个完整时钟周期后才释放（$fell(rst) 前 $past(rst)==1），保证 DUT 经复位序列进
+M_CK_API_RESET_NO_REQ = "OTHER"  # 复位期间静默假设：rst 有效期间 Manager 不发起任何请求，即 AWVALID==0 且 WVALID==0 且 ARVALID==0
+M_CK_API_AW_VALID_STABLE = "HS_VALID_HOLD"  # AW 通道 Valid 稳定性：AWVALID 置位且 AWREADY 未置位时，下一拍 AWVALID 不得撤销（AWVALID && !AWREADY |=
+M_CK_API_W_VALID_STABLE = "HS_VALID_HOLD"  # W 通道 Valid 稳定性：WVALID 置位且 WREADY 未置位时，下一拍 WVALID 不得撤销（WVALID && !WREADY |=> WVAL
+M_CK_API_AR_VALID_STABLE = "HS_VALID_HOLD"  # AR 通道 Valid 稳定性：ARVALID 置位且 ARREADY 未置位时，下一拍 ARVALID 不得撤销（ARVALID && !ARREADY |=
+M_CK_API_PAYLOAD_NO_X = "OTHER"  # 输入无 X 假设：VALID 有效期间对应 payload 不得含 X 态——AWVALID|->!$isunknown({AWID,AWADDR,AWLEN,
+M_CK_API_AW_PAYLOAD_STABLE = "HS_INFO_STABLE"  # AW payload 稳定性：AWVALID && !AWREADY 期间 {AWID,AWADDR,AWLEN,AWSIZE,AWBURST} 逐拍保持 $s
+M_CK_API_W_PAYLOAD_STABLE = "HS_INFO_STABLE"  # W payload 稳定性：WVALID && !WREADY 期间 {WDATA,WSTRB,WLAST} 逐拍保持 $stable
+M_CK_API_AR_PAYLOAD_STABLE = "HS_INFO_STABLE"  # AR payload 稳定性：ARVALID && !ARREADY 期间 {ARID,ARADDR,ARLEN,ARSIZE,ARBURST} 逐拍保持 $s
+M_CK_API_BURST_TYPE_LEGAL = "BURST_RESERVED"  # 突发类型合法：AWVALID 时 AWBURST ∈ {00 FIXED, 01 INCR, 10 WRAP}；ARVALID 时 ARBURST ∈ {00,
+M_CK_API_SIZE_WITHIN_BUS = "OTHER"  # 突发位宽不越界：AWVALID 时 AWSIZE ≤ clog2(STRB_WIDTH)；ARVALID 时 ARSIZE ≤ clog2(STRB_WIDTH
+M_CK_API_WLAST_CORRECT = ["WLAST", "EARLY_TERM"]  # WLAST 时序正确：WLAST 必须且仅在写突发最后一拍（写计数器读回为 0 的拍）随 WVALID 置位，与 AWLEN 声明的拍数一致，不得提前或滞后
+M_CK_API_FV_IDX_STABLE = "OTHER"  # fv_idx 稳定性（强制）：整个验证过程中 fv_idx 保持 $stable，不发生漂移（无时序 disable，始终成立）
+M_CK_API_FV_IDX_VALID = "OTHER"  # fv_idx 范围合法（强制）：fv_idx < 2^VALID_ADDR_WIDTH（存储字深度），确保符号化访问落在阵列边界内
+M_CK_API_FV_IDX_KNOWN = "OTHER"  # fv_idx 无 X 态（强制）：!$isunknown(fv_idx) 始终成立
+A_CK_RESET_VALID_CLEAR = "OTHER"  # 复位清 VALID：rst 有效时，下一拍 BVALID==0 且 RVALID==0 且 RVALID_pipe==0（@(posedge clk) rst 
+A_CK_RESET_READY_CLEAR = "OTHER"  # 复位清 READY：rst 有效时，下一拍 AWREADY==0 且 WREADY==0 且 ARREADY==0
+A_CK_RESET_RESP_OKAY = "OTHER"  # 响应码恒 OKAY（组合恒等式）：s_axi_bresp == 2'b00 且 s_axi_rresp == 2'b00 在任意时刻成立，不含时序操作符
+A_CK_RESET_WR_FSM_IDLE = "OTHER"  # 写 FSM 复位回 IDLE：rst 有效时，下一拍 write_state_reg == WRITE_STATE_IDLE
+A_CK_RESET_RD_FSM_IDLE = "OTHER"  # 读 FSM 复位回 IDLE：rst 有效时，下一拍 read_state_reg == READ_STATE_IDLE
+A_CK_RESET_FSM_VALID_STATE = "OTHER"  # FSM 编码合法性（组合）：write_state_reg ∈ {IDLE,BURST,RESP} 且 read_state_reg ∈ {IDLE,BURST
+A_CK_RESET_MEM_PRESERVE = "OTHER"  # 复位不破坏存储（Symbolic 帧条件）：rst 有效期间 mem_at_fv 保持 $stable，即复位逻辑不写入存储阵列
+A_CK_WRITE_AW_LATCH = "OTHER"  # AW 上下文锁存（正向）：AW 握手（AWVALID && AWREADY，写 FSM==IDLE）后，下一拍 write_id_reg==$past(AWID
+A_CK_WRITE_AW_SIZE_CLAMP = "OTHER"  # AWSIZE 钳位：AW 握手后 write_size_reg == min($past(AWSIZE), clog2(STRB_WIDTH))（默认配置且环境
+A_CK_WRITE_AW_FSM_ENTER_BURST = "OTHER"  # 写 FSM 进入 BURST（正向状态转移）：写 FSM==IDLE 且 AW 握手 |=> write_state_reg==WRITE_STATE_BURS
+A_CK_WRITE_AW_IDLE_FRAME = "OTHER"  # 写上下文帧条件（负向）：写 FSM==IDLE 且无 AW 握手 |=> {write_id_reg,write_addr_reg,write_count_re
+A_CK_WRITE_BEAT_COUNT_DEC = "OTHER"  # 写计数器自减（正向）：写 FSM==BURST 且 W 握手（WVALID && WREADY）且 write_count_reg>0 |=> write_co
+A_CK_WRITE_BEAT_NONLAST_STAY = "OTHER"  # 非最后一拍保持 BURST：写 FSM==BURST 且 W 握手且 write_count_reg>0 |=> write_state_reg==WRITE_
+A_CK_WRITE_BEAT_LAST_EXIT = "OTHER"  # 最后一拍退出 BURST（正向）：写 FSM==BURST 且 W 握手且 write_count_reg==0 |=> WREADY 拉低且写 FSM 离开 
+A_CK_WRITE_BEAT_NOHS_FRAME = "OTHER"  # 无 W 握手帧条件（负向）：写 FSM==BURST 且无 W 握手 |=> {write_count_reg,write_addr_reg} 保持 $stab
+A_CK_WRITE_ADDR_INCR = "OTHER"  # INCR 地址递增（正向）：写 FSM==BURST 且 W 握手且 write_burst_reg==INCR |=> write_addr_reg == $
+A_CK_WRITE_ADDR_FIXED = "OTHER"  # FIXED 地址保持（负向帧条件）：写 FSM==BURST 且 W 握手且 write_burst_reg==FIXED |=> write_addr_reg
+A_CK_WRITE_ADDR_WRAP = "OTHER"  # WRAP 边界回卷：write_burst_reg==WRAP 时每拍地址应在 (burst_len × 2^size) 边界内回卷（缺陷线索：RTL 仅 +=
+A_CK_WRITE_B_VALID_SET = "OTHER"  # BVALID 置位时机（正向）：写 FSM==BURST 且最后一拍 W 握手（write_count_reg==0）|=> BVALID==1；且 BVALI
+A_CK_WRITE_B_ID_REFLECT = "DEP_B_AFTER_W"  # BID 反射：BVALID 置位时 s_axi_bid == write_id_reg（等于对应事务的 AWID）
+A_CK_WRITE_B_VALID_STABLE = "HS_VALID_HOLD"  # BVALID 不撤销（AXI A2.3）：BVALID && !BREADY |=> BVALID 保持置位
+A_CK_WRITE_B_PAYLOAD_STABLE = "HS_INFO_STABLE"  # B payload 稳定（AXI A2.3 帧条件）：BVALID && !BREADY |=> s_axi_bid 保持 $stable
+A_CK_WRITE_B_HANDSHAKE_EXIT = "OTHER"  # B 握手完成退出（正向）：BVALID && BREADY |=> BVALID 拉低且写 FSM 回到 WRITE_STATE_IDLE
+A_CK_READ_AR_LATCH = "OTHER"  # AR 上下文锁存（正向）：AR 握手（ARVALID && ARREADY，读 FSM==IDLE）后，下一拍 read_id_reg==$past(ARID)
+A_CK_READ_AR_SIZE_CLAMP = "OTHER"  # ARSIZE 钳位：AR 握手后 read_size_reg == min($past(ARSIZE), clog2(STRB_WIDTH))（默认配置且环境约
+A_CK_READ_AR_FSM_ENTER_BURST = "OTHER"  # 读 FSM 进入 BURST（正向状态转移）：读 FSM==IDLE 且 AR 握手 |=> read_state_reg==READ_STATE_BURST 
+A_CK_READ_AR_IDLE_FRAME = "OTHER"  # 读上下文帧条件（负向）：读 FSM==IDLE 且无 AR 握手 |=> {read_id_reg,read_addr_reg,read_count_reg,r
+A_CK_READ_BEAT_VALID_SET = "OTHER"  # RVALID 置位（正向）：读 FSM==BURST 且无输出阻塞时发起读拍，下一拍 RVALID==1，读数据打入输出寄存器
+A_CK_READ_BEAT_COUNT_DEC = "OTHER"  # 读计数器自减（正向）：读 FSM==BURST 且 R 拍成功输出（内部读使能有效）且 read_count_reg>0 |=> read_count_reg 
+A_CK_READ_BEAT_ID_REFLECT = "DEP_R_AFTER_AR"  # RID 反射：RVALID 置位时 s_axi_rid == read_id_reg（等于对应事务的 ARID）
+A_CK_READ_BEAT_VALID_STABLE = "HS_VALID_HOLD"  # RVALID 不撤销（AXI A2.3）：RVALID && !RREADY |=> RVALID 保持置位
+A_CK_READ_BEAT_PAYLOAD_STABLE = "HS_INFO_STABLE"  # R payload 稳定（AXI A2.3 帧条件）：RVALID && !RREADY |=> {s_axi_rid,s_axi_rdata,s_axi_rl
+A_CK_READ_RLAST_ON_LAST = "RLAST"  # RLAST 最后一拍置位（正向）：读 FSM==BURST 且 read_count_reg==0 且发起最后一拍读 |=> RVALID==1 且 RLAST
+A_CK_READ_RLAST_NOT_EARLY = ["RLAST", "EARLY_TERM"]  # RLAST 不提前（负向）：RVALID 置位但 read_count_reg>0（非最后一拍）时 RLAST==0
+A_CK_READ_RLAST_WITH_VALID = "OTHER"  # RLAST 与 RVALID 对齐：RLAST==1 当且仅当对应拍 RVALID==1，RLAST 不得脱离 RVALID 单独出现
+A_CK_READ_ADDR_INCR = "OTHER"  # INCR 地址递增（正向）：读 FSM==BURST 且读拍推进且 read_burst_reg==INCR |=> read_addr_reg == $pas
+A_CK_READ_ADDR_FIXED = "OTHER"  # FIXED 地址保持（负向帧条件）：读 FSM==BURST 且读拍推进且 read_burst_reg==FIXED |=> read_addr_reg ==
+A_CK_READ_ADDR_WRAP = "OTHER"  # WRAP 边界回卷：read_burst_reg==WRAP 时每拍地址应在 (burst_len × 2^size) 边界内回卷（缺陷线索：RTL 仅 += 
+A_CK_READ_PIPE_VALID_STABLE = "OTHER"  # 流水 RVALID 不撤销（AXI A2.3，PIPELINE_OUTPUT=1）：RVALID_pipe && !RREADY |=> RVALID_pipe
+A_CK_READ_PIPE_PAYLOAD_STABLE = "OTHER"  # 流水 R payload 稳定（帧条件，PIPELINE_OUTPUT=1）：RVALID_pipe && !RREADY |=> {RID_pipe,RDAT
+A_CK_READ_PIPE_BACKPRESSURE = "OTHER"  # 流水背压条件：PIPELINE_OUTPUT=1 时内部读数据仅在 (RREADY || !RVALID_pipe) 时打入流水寄存器，背压期间内部数据被正确保
+A_CK_MEM_STRB_BYTE_WRITE = "OTHER"  # 选通字节写入（正向，Symbolic）：mem_wr_en 且写地址索引==fv_idx 且 wstrb[i]==1 |=> mem_at_fv 的第 i 字节
+A_CK_MEM_STRB_BYTE_KEEP = "OTHER"  # 未选通字节保持（负向帧条件，Symbolic）：mem_wr_en 且写地址索引==fv_idx 且 wstrb[i]==0 |=> mem_at_fv 的第 
+A_CK_MEM_RAW_DATA = "OTHER"  # 写后读一致（Symbolic）：对 fv_idx 指向的地址先完成写（按 WSTRB 合并后记录 fv_mon_data），之后对该地址的读，其 RDATA 对
+A_CK_MEM_FRAME_NO_WRITE = "OTHER"  # 无写使能保持（负向，Symbolic）：mem_wr_en 无效 |=> mem_at_fv 保持 $stable
+A_CK_MEM_FRAME_DIFF_ADDR = "OTHER"  # 异地址写入不影响（负向，Symbolic）：mem_wr_en 有效但写地址索引 != fv_idx |=> mem_at_fv 保持 $stable（防地址译
+A_CK_CONC_READ_DURING_WRITE = "OTHER"  # 写进行中可读（正向）：写 FSM==BURST 且 AR 握手 |=> 读 FSM 进入 BURST，写 FSM 状态与写上下文寄存器保持 $stable，不受
+A_CK_CONC_WRITE_DURING_READ = "OTHER"  # 读进行中可写（正向）：读 FSM==BURST 且 AW 握手 |=> 写 FSM 进入 BURST，读 FSM 状态与读上下文寄存器保持 $stable，不受
+A_CK_CONC_B_BACKPRESSURE_HOLD = ["HS_VALID_HOLD", "HS_INFO_STABLE"]  # B 背压保持（负向）：BVALID && !BREADY |=> {s_axi_bid,s_axi_bvalid} 保持 $stable，背压期间不丢响应、不重
+A_CK_CONC_R_BACKPRESSURE_HOLD = ["HS_VALID_HOLD", "HS_INFO_STABLE"]  # R 背压保持（负向）：RVALID && !RREADY |=> {s_axi_rid,s_axi_rdata,s_axi_rlast,s_axi_rvalid
+A_CK_CONC_BP_RESUME = "OTHER"  # 背压解除正确完成（正向）：背压（BVALID&&!BREADY 或 RVALID&&!RREADY）后一旦对应 READY 拉高，下一拍对应 VALID 拉低且

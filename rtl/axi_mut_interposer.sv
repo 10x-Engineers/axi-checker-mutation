@@ -8,11 +8,13 @@
 // the bus, so a clean run is cycle-identical to having no interposer.
 //
 // Armed, exactly one channel carries one mutation, selected at time 0 by plusargs:
-//   +mut_id=<name>  +mut_chan=AW|W|B|AR|R  +mut_op=VALID_DROP|GLITCH|OVERRIDE
+//   +mut_id=<name>  +mut_chan=AW|W|B|AR|R  +mut_op=VALID_DROP|GLITCH|OVERRIDE|HS_DELAY|STALL|SWAP
 //   +mut_nth=<n>                 hit the n-th beat that matches the trigger (default 1)
 //   +mut_tfield=<F> +mut_tval=<hex>   trigger: beat with field F == tval (default: any beat)
 //   +mut_xfield=<F> +mut_xval=<hex>   GLITCH: bits of F to flip; OVERRIDE: value forced into F
-//   +mut_stall=<n>               back-pressure cycles for VALID_DROP/GLITCH (default 3)
+//   +mut2_<same keys>            optional legal companion on another channel (no INJECT)
+//   +mut_stall=<n>               back-pressure cycles for VALID_DROP/GLITCH, or the obs
+//                                handshake delay for HS_DELAY (default 3)
 // The mutation is applied only to obs_*, so the manager and subordinate exchange
 // unchanged data; the real path sees nothing but legal back-pressure.
 
@@ -158,57 +160,87 @@ module axi_mut_interposer #(
   endfunction
 
   // ---- configuration (static after time 0) ----
-  string                  mut_id, s_chan, s_op, s_tfield, s_xfield;
-  mut_chan_e              cfg_chan;
-  mut_op_e                cfg_op;
-  int unsigned            cfg_nth, cfg_stall;
-  logic [MAXW-1:0]        cfg_tmask, cfg_tval, cfg_xmask, cfg_xval;
+  // Slot 0 (+mut_*) is the mutant; slot 1 (+mut2_*) is an optional companion that is
+  // legal on its own (e.g. an EXOKAY to an exclusive read) and sets up the context the
+  // mutant needs. Only slot 0 reports INJECT. At most one slot per channel.
+  localparam int NS = 2;
+  string            mut_id;
+  mut_chan_e        cfg_chan  [NS];
+  mut_op_e          cfg_op    [NS];
+  int unsigned      cfg_nth   [NS], cfg_stall[NS];
+  logic [MAXW-1:0]  cfg_tmask [NS], cfg_tval[NS], cfg_xmask[NS], cfg_xval[NS];
 
-  initial begin
+  function automatic void parse_slot(int k, string pfx);
+    string        s_chan, s_op, s_tfield, s_xfield;
     logic [127:0] tv, xv;
     mut_chan_e    fch;
     int           lsb, w;
-    if (!$value$plusargs("mut_id=%s", mut_id))       mut_id   = "";
-    if (!$value$plusargs("mut_chan=%s", s_chan))     s_chan   = "";
-    if (!$value$plusargs("mut_op=%s", s_op))         s_op     = "";
-    if (!$value$plusargs("mut_nth=%d", cfg_nth))     cfg_nth  = 1;
-    if (!$value$plusargs("mut_stall=%d", cfg_stall)) cfg_stall = 3;
-    if (!$value$plusargs("mut_tfield=%s", s_tfield)) s_tfield = "";
-    if (!$value$plusargs("mut_xfield=%s", s_xfield)) s_xfield = "";
-    if (!$value$plusargs("mut_tval=%h", tv))         tv = '0;
-    if (!$value$plusargs("mut_xval=%h", xv))         xv = '1;
-    cfg_chan  = chan_from_string(s_chan);
-    cfg_op    = (cfg_chan == CH_NONE) ? MUT_NONE : op_from_string(s_op);
-    cfg_tmask = '0; cfg_tval = '0; cfg_xmask = '0; cfg_xval = '0;
-    if (cfg_nth == 0)   $fatal(1, "[MUT] +mut_nth is 1-based");
-    if (cfg_stall < 2 && cfg_op inside {MUT_VALID_DROP, MUT_GLITCH})
-      $fatal(1, "[MUT] +mut_stall must be >= 2 for %s", s_op);
+    if (!$value$plusargs({pfx, "chan=%s"}, s_chan))       s_chan = "";
+    if (!$value$plusargs({pfx, "op=%s"}, s_op))           s_op = "";
+    if (!$value$plusargs({pfx, "nth=%d"}, cfg_nth[k]))    cfg_nth[k] = 1;
+    if (!$value$plusargs({pfx, "stall=%d"}, cfg_stall[k])) cfg_stall[k] = 3;
+    if (!$value$plusargs({pfx, "tfield=%s"}, s_tfield))   s_tfield = "";
+    if (!$value$plusargs({pfx, "xfield=%s"}, s_xfield))   s_xfield = "";
+    if (!$value$plusargs({pfx, "tval=%h"}, tv))           tv = '0;
+    if (!$value$plusargs({pfx, "xval=%h"}, xv))           xv = '1;
+    cfg_chan[k]  = chan_from_string(s_chan);
+    cfg_op[k]    = (cfg_chan[k] == CH_NONE) ? MUT_NONE : op_from_string(s_op);
+    cfg_tmask[k] = '0; cfg_tval[k] = '0; cfg_xmask[k] = '0; cfg_xval[k] = '0;
+    if (cfg_op[k] == MUT_NONE) return;
+    if (cfg_nth[k] == 0) $fatal(1, "[MUT] +%snth is 1-based", pfx);
+    if (cfg_stall[k] < 2 && cfg_op[k] inside {MUT_VALID_DROP, MUT_GLITCH, MUT_HS_DELAY, MUT_STALL})
+      $fatal(1, "[MUT] +%sstall must be >= 2 for %s", pfx, s_op);
     if (s_tfield != "") begin
       field_info(s_tfield, fch, lsb, w);
-      if (fch != cfg_chan) $fatal(1, "[MUT] trigger field %s is not on channel %s", s_tfield, s_chan);
-      cfg_tmask = ((MAXW'(1) << w) - 1) << lsb;
-      cfg_tval  = (MAXW'(tv) << lsb) & cfg_tmask;
+      if (fch != cfg_chan[k]) $fatal(1, "[MUT] trigger field %s is not on channel %s", s_tfield, s_chan);
+      cfg_tmask[k] = ((MAXW'(1) << w) - 1) << lsb;
+      cfg_tval[k]  = (MAXW'(tv) << lsb) & cfg_tmask[k];
     end
     if (s_xfield != "") begin
       field_info(s_xfield, fch, lsb, w);
-      if (fch != cfg_chan) $fatal(1, "[MUT] mutated field %s is not on channel %s", s_xfield, s_chan);
-      if (cfg_op == MUT_GLITCH) begin
-        cfg_xmask = (MAXW'(xv) << lsb) & (((MAXW'(1) << w) - 1) << lsb);
+      if (fch != cfg_chan[k]) $fatal(1, "[MUT] mutated field %s is not on channel %s", s_xfield, s_chan);
+      if (cfg_op[k] == MUT_GLITCH) begin
+        cfg_xmask[k] = (MAXW'(xv) << lsb) & (((MAXW'(1) << w) - 1) << lsb);
       end else begin
-        cfg_xmask = ((MAXW'(1) << w) - 1) << lsb;
-        cfg_xval  = (MAXW'(xv) << lsb) & cfg_xmask;
+        cfg_xmask[k] = ((MAXW'(1) << w) - 1) << lsb;
+        cfg_xval[k]  = (MAXW'(xv) << lsb) & cfg_xmask[k];
       end
-    end else if (cfg_op inside {MUT_GLITCH, MUT_OVERRIDE}) begin
-      $fatal(1, "[MUT] %s needs +mut_xfield", s_op);
+    end else if (cfg_op[k] inside {MUT_GLITCH, MUT_OVERRIDE, MUT_SWAP}) begin
+      $fatal(1, "[MUT] %s needs +%sxfield", s_op, pfx);
     end
-    if (cfg_op != MUT_NONE)
-      $display("[MUT] ARMED id=%s chan=%s op=%s nth=%0d tfield=%s xfield=%s",
-               mut_id, s_chan, s_op, cfg_nth, s_tfield, s_xfield);
+    $display("[MUT] ARMED slot=%0d chan=%s op=%s nth=%0d tfield=%s xfield=%s",
+             k, s_chan, s_op, cfg_nth[k], s_tfield, s_xfield);
+  endfunction
+
+  initial begin
+    if (!$value$plusargs("mut_id=%s", mut_id)) mut_id = "";
+    parse_slot(0, "mut_");
+    parse_slot(1, "mut2_");
+    if (cfg_op[1] != MUT_NONE && cfg_op[0] == MUT_NONE)
+      $fatal(1, "[MUT] a companion (+mut2_*) needs a mutant (+mut_*)");
+    if (cfg_op[1] != MUT_NONE && cfg_chan[1] == cfg_chan[0])
+      $fatal(1, "[MUT] mutant and companion must be on different channels");
   end
 
-  function automatic mut_op_e op_for(mut_chan_e ch);
-    return (cfg_chan == ch) ? cfg_op : MUT_NONE;
-  endfunction
+  // Per-channel view of the slot that targets it (MUT_NONE if neither does).
+  mut_op_e         ch_op   [5];
+  logic            ch_prim [5];
+  int unsigned     ch_nth  [5], ch_stall[5];
+  logic [MAXW-1:0] ch_tmask[5], ch_tval[5], ch_xmask[5], ch_xval[5];
+  always_comb begin
+    for (int c = 0; c < 5; c++) begin
+      ch_op[c] = MUT_NONE; ch_prim[c] = 1'b0; ch_nth[c] = 1; ch_stall[c] = 3;
+      ch_tmask[c] = '0; ch_tval[c] = '0; ch_xmask[c] = '0; ch_xval[c] = '0;
+      for (int k = NS - 1; k >= 0; k--) begin
+        if (cfg_op[k] != MUT_NONE && int'(cfg_chan[k]) == c) begin
+          ch_op[c] = cfg_op[k]; ch_prim[c] = (k == 0);
+          ch_nth[c] = cfg_nth[k]; ch_stall[c] = cfg_stall[k];
+          ch_tmask[c] = cfg_tmask[k]; ch_tval[c] = cfg_tval[k];
+          ch_xmask[c] = cfg_xmask[k]; ch_xval[c] = cfg_xval[k];
+        end
+      end
+    end
+  end
 
   // ---- channels ----
   logic [AX_W-1:0] aw_src, aw_dst, aw_obs, ar_src, ar_dst, ar_obs;
@@ -230,45 +262,45 @@ module axi_mut_interposer #(
     .src_valid(m_awvalid), .src_ready(m_awready), .src_payload(aw_src),
     .dst_valid(s_awvalid), .dst_ready(s_awready), .dst_payload(aw_dst),
     .obs_valid(obs_awvalid), .obs_ready(obs_awready), .obs_payload(aw_obs),
-    .op(op_for(CH_AW)), .nth(cfg_nth), .stall(cfg_stall),
-    .tmask(cfg_tmask[AX_W-1:0]), .tval(cfg_tval[AX_W-1:0]),
-    .xmask(cfg_xmask[AX_W-1:0]), .xval(cfg_xval[AX_W-1:0]), .inject(inj_aw));
+    .op(ch_op[CH_AW]), .nth(ch_nth[CH_AW]), .stall(ch_stall[CH_AW]),
+    .tmask(ch_tmask[CH_AW][AX_W-1:0]), .tval(ch_tval[CH_AW][AX_W-1:0]),
+    .xmask(ch_xmask[CH_AW][AX_W-1:0]), .xval(ch_xval[CH_AW][AX_W-1:0]), .inject(inj_aw));
 
   axi_mut_chan #(.W(W_W)) u_w (
     .clk(aclk), .rst_n(aresetn),
     .src_valid(m_wvalid), .src_ready(m_wready), .src_payload(w_src),
     .dst_valid(s_wvalid), .dst_ready(s_wready), .dst_payload(w_dst),
     .obs_valid(obs_wvalid), .obs_ready(obs_wready), .obs_payload(w_obs),
-    .op(op_for(CH_W)), .nth(cfg_nth), .stall(cfg_stall),
-    .tmask(cfg_tmask[W_W-1:0]), .tval(cfg_tval[W_W-1:0]),
-    .xmask(cfg_xmask[W_W-1:0]), .xval(cfg_xval[W_W-1:0]), .inject(inj_w));
+    .op(ch_op[CH_W]), .nth(ch_nth[CH_W]), .stall(ch_stall[CH_W]),
+    .tmask(ch_tmask[CH_W][W_W-1:0]), .tval(ch_tval[CH_W][W_W-1:0]),
+    .xmask(ch_xmask[CH_W][W_W-1:0]), .xval(ch_xval[CH_W][W_W-1:0]), .inject(inj_w));
 
   axi_mut_chan #(.W(B_W)) u_b (
     .clk(aclk), .rst_n(aresetn),
     .src_valid(s_bvalid), .src_ready(s_bready), .src_payload(b_src),
     .dst_valid(m_bvalid), .dst_ready(m_bready), .dst_payload(b_dst),
     .obs_valid(obs_bvalid), .obs_ready(obs_bready), .obs_payload(b_obs),
-    .op(op_for(CH_B)), .nth(cfg_nth), .stall(cfg_stall),
-    .tmask(cfg_tmask[B_W-1:0]), .tval(cfg_tval[B_W-1:0]),
-    .xmask(cfg_xmask[B_W-1:0]), .xval(cfg_xval[B_W-1:0]), .inject(inj_b));
+    .op(ch_op[CH_B]), .nth(ch_nth[CH_B]), .stall(ch_stall[CH_B]),
+    .tmask(ch_tmask[CH_B][B_W-1:0]), .tval(ch_tval[CH_B][B_W-1:0]),
+    .xmask(ch_xmask[CH_B][B_W-1:0]), .xval(ch_xval[CH_B][B_W-1:0]), .inject(inj_b));
 
   axi_mut_chan #(.W(AX_W)) u_ar (
     .clk(aclk), .rst_n(aresetn),
     .src_valid(m_arvalid), .src_ready(m_arready), .src_payload(ar_src),
     .dst_valid(s_arvalid), .dst_ready(s_arready), .dst_payload(ar_dst),
     .obs_valid(obs_arvalid), .obs_ready(obs_arready), .obs_payload(ar_obs),
-    .op(op_for(CH_AR)), .nth(cfg_nth), .stall(cfg_stall),
-    .tmask(cfg_tmask[AX_W-1:0]), .tval(cfg_tval[AX_W-1:0]),
-    .xmask(cfg_xmask[AX_W-1:0]), .xval(cfg_xval[AX_W-1:0]), .inject(inj_ar));
+    .op(ch_op[CH_AR]), .nth(ch_nth[CH_AR]), .stall(ch_stall[CH_AR]),
+    .tmask(ch_tmask[CH_AR][AX_W-1:0]), .tval(ch_tval[CH_AR][AX_W-1:0]),
+    .xmask(ch_xmask[CH_AR][AX_W-1:0]), .xval(ch_xval[CH_AR][AX_W-1:0]), .inject(inj_ar));
 
   axi_mut_chan #(.W(R_W)) u_r (
     .clk(aclk), .rst_n(aresetn),
     .src_valid(s_rvalid), .src_ready(s_rready), .src_payload(r_src),
     .dst_valid(m_rvalid), .dst_ready(m_rready), .dst_payload(r_dst),
     .obs_valid(obs_rvalid), .obs_ready(obs_rready), .obs_payload(r_obs),
-    .op(op_for(CH_R)), .nth(cfg_nth), .stall(cfg_stall),
-    .tmask(cfg_tmask[R_W-1:0]), .tval(cfg_tval[R_W-1:0]),
-    .xmask(cfg_xmask[R_W-1:0]), .xval(cfg_xval[R_W-1:0]), .inject(inj_r));
+    .op(ch_op[CH_R]), .nth(ch_nth[CH_R]), .stall(ch_stall[CH_R]),
+    .tmask(ch_tmask[CH_R][R_W-1:0]), .tval(ch_tval[CH_R][R_W-1:0]),
+    .xmask(ch_xmask[CH_R][R_W-1:0]), .xval(ch_xval[CH_R][R_W-1:0]), .inject(inj_r));
 
   assign {s_awid, s_awaddr, s_awlen, s_awsize, s_awburst, s_awlock, s_awcache,
           s_awprot, s_awqos, s_awregion, s_awuser} = aw_dst;
@@ -288,7 +320,8 @@ module axi_mut_interposer #(
 
   // One line per injection; the harness grades kills against this timestamp.
   always @(posedge aclk)
-    if (inj_aw || inj_w || inj_b || inj_ar || inj_r)
+    if ((inj_aw && ch_prim[CH_AW]) || (inj_w && ch_prim[CH_W]) || (inj_b && ch_prim[CH_B]) ||
+        (inj_ar && ch_prim[CH_AR]) || (inj_r && ch_prim[CH_R]))
       $display("[MUT] INJECT id=%s t=%0t", mut_id, $time);
 
 endmodule

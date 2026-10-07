@@ -4,7 +4,10 @@ package axi_mut_pkg;
     MUT_NONE       = 0,
     MUT_VALID_DROP = 1,  // back-pressure the beat, drop VALID on obs for one cycle
     MUT_GLITCH     = 2,  // back-pressure the beat, flip payload bits on obs for one cycle
-    MUT_OVERRIDE   = 3   // replace payload bits on obs for the whole beat
+    MUT_OVERRIDE   = 3,  // replace payload bits on obs for the whole beat
+    MUT_HS_DELAY   = 4,  // show the beat's handshake on obs `stall` cycles after the real one
+    MUT_STALL      = 5,  // LEGAL: back-pressure the beat for `stall` cycles, obs untouched
+    MUT_SWAP       = 6   // show the hit burst on obs after the next burst (xfield marks the last beat)
   } mut_op_e;
 
   typedef enum int unsigned { CH_AW, CH_W, CH_B, CH_AR, CH_R, CH_NONE } mut_chan_e;
@@ -15,6 +18,9 @@ package axi_mut_pkg;
       "VALID_DROP" : return MUT_VALID_DROP;
       "GLITCH"     : return MUT_GLITCH;
       "OVERRIDE"   : return MUT_OVERRIDE;
+      "HS_DELAY"   : return MUT_HS_DELAY;
+      "STALL"      : return MUT_STALL;
+      "SWAP"       : return MUT_SWAP;
       default      : $fatal(1, "[MUT] unknown +mut_op=%s", s);
     endcase
   endfunction

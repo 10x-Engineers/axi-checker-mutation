@@ -1,0 +1,18 @@
+# checker rule label -> clause key (catalog/clauses.toml). Curated from what each rule
+# checks, before any measurement; OTHER = a real AXI rule the catalog has no mutant for.
+[rules]
+VALID_low_during_reset = "OTHER"
+AWVALID_stable = "HS_VALID_HOLD"
+WVALID_stable = "HS_VALID_HOLD"
+ARVALID_stable = "HS_VALID_HOLD"
+BVALID_after_WLAST = "DEP_B_AFTER_W"
+RLAST_on_last = "RLAST"
+WLAST_on_final = "WLAST"
+WRAP_write_len = "WRAP_LEN"
+WRAP_read_len = "WRAP_LEN"
+BURST_not_reserved_write = "BURST_RESERVED"
+BURST_not_reserved_read = "BURST_RESERVED"
+AWSIZE_valid = "OTHER"
+ARSIZE_valid = "OTHER"
+WRITE_resp_ordering = "DEP_B_AFTER_W"
+READ_resp_ordering = "DEP_R_AFTER_AR"

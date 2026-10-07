@@ -105,3 +105,21 @@ sec = "A6.3.3"
 page = 111
 level = "MUST"
 text = "The Length of an exclusive access must not exceed 16 transfers."
+
+[EXCL_WRITE_AFTER_READ]
+sec = "A6.3.2"
+page = 111
+level = "MUST"
+text = "A Manager must not start the write part of an exclusive access sequence until the read part is complete."
+
+[EXCL_READ_NO_MIX]
+sec = "A6.3.4"
+page = 112
+level = "MUST"
+text = "An exclusive read can have more than one response transfers. It is not permitted to have a mix of OKAY and EXOKAY responses for a single transaction."
+
+[EXCL_FAIL_OKAY]
+sec = "A6.3.4"
+page = 112
+level = "MUST"
+text = "If the monitor deems the sequence to have failed, the exclusive write must not update the addressed location, and the Subordinate must return the OKAY response instead of the EXOKAY response. (With A6.3.2 p.111: an exclusive read answered OKAY leaves the location unmonitored.)"

@@ -246,3 +246,136 @@ tfield = "ARADDR"
 tval = "1000"         # 128 bytes at 0x1000: power of 2 and aligned, but 32 beats
 xfield = "ARLOCK"
 xval = "1"
+
+# ---- ordering / dependencies between channels ------------------------------
+# HS_DELAY keeps the request un-accepted on obs for `stall` cycles after the real
+# handshake, so the Subordinate's (real, legal) response appears on obs first.
+[[mutant]]
+id = "r-before-ar-hs"
+class = "ordering"
+clauses = ["DEP_R_AFTER_AR"]
+chan = "AR"
+op = "HS_DELAY"
+stall = 8
+tfield = "ARADDR"
+tval = "100"
+window = 8
+
+[[mutant]]
+id = "b-before-wlast-hs"
+class = "ordering"
+clauses = ["DEP_B_AFTER_W"]
+chan = "W"
+op = "HS_DELAY"
+stall = 8
+nth = 2
+tfield = "WLAST"
+tval = "1"            # last beat of the second write (8 bytes at 0x110)
+window = 8
+
+[[mutant]]
+id = "b-before-aw-hs"
+class = "ordering"
+clauses = ["DEP_B_AFTER_W"]
+chan = "AW"
+op = "HS_DELAY"
+stall = 8
+tfield = "AWADDR"
+tval = "120"
+window = 8
+
+[[mutant]]
+id = "rid-not-outstanding"
+class = "ordering"
+clauses = ["DEP_R_AFTER_AR"]
+chan = "R"
+op = "OVERRIDE"
+xfield = "RID"
+xval = "ab"           # no request with this ID is ever issued
+
+[[mutant]]
+id = "bid-not-outstanding"
+class = "ordering"
+clauses = ["DEP_B_AFTER_W"]
+chan = "B"
+op = "OVERRIDE"
+xfield = "BID"
+xval = "ab"
+
+# ---- exclusive-access sequence (rules spread over A6.3.2 and A6.3.4) --------
+# These need tb/test_axi.py's exclusive tail: IDs 5, 6, 8 and 9 are used only there.
+[[mutant]]
+id = "exokay-write-unmonitored"
+class = "exclusive"
+clauses = ["EXCL_FAIL_OKAY"]
+chan = "B"
+op = "OVERRIDE"
+tfield = "BID"
+tval = "5"            # its exclusive read got OKAY, so nothing is being monitored
+xfield = "BRESP"
+xval = "1"
+
+[[mutant]]
+id = "exokay-after-intervening-write"
+class = "exclusive"
+clauses = ["EXCL_FAIL_OKAY"]
+chan = "B"
+op = "OVERRIDE"
+tfield = "BID"
+tval = "6"            # a normal write hit 0x780 between the exclusive read and write
+xfield = "BRESP"
+xval = "1"
+  [mutant.companion]  # legal alone: the Subordinate reports it is monitoring 0x780
+  chan = "R"
+  op = "OVERRIDE"
+  tfield = "RID"
+  tval = "6"
+  xfield = "RRESP"
+  xval = "1"
+
+[[mutant]]
+id = "excl-read-mixed-resp"
+class = "exclusive"
+clauses = ["EXCL_READ_NO_MIX"]
+chan = "R"
+op = "OVERRIDE"
+tfield = "RID"
+tval = "8"            # 4-beat exclusive read: first beat EXOKAY, the rest OKAY
+xfield = "RRESP"
+xval = "1"
+
+[[mutant]]
+id = "excl-write-before-read-done"
+class = "exclusive"
+clauses = ["EXCL_WRITE_AFTER_READ"]
+chan = "R"
+op = "HS_DELAY"
+stall = 8
+tfield = "RID"
+tval = "9"            # the exclusive write to 0x7E0 is issued as soon as the real read ends
+window = 8
+
+# ---- same-ID ordering ------------------------------------------------------
+[[mutant]]
+id = "same-id-read-swap"
+class = "ordering"
+clauses = ["SAMEID_ORDER"]
+checker_visible = false
+chan = "R"
+op = "SWAP"
+tfield = "RID"
+tval = "3"            # the two outstanding ID-3 reads (0x3000, 0x3100)
+xfield = "RLAST"
+xval = "1"
+window = 8
+
+[[mutant]]
+id = "ar-4kb-cross-after-wrap"
+class = "burst"
+clauses = ["NO_4KB_CROSS"]
+chan = "AR"
+op = "OVERRIDE"
+tfield = "ARADDR"
+tval = "b40"          # 64-byte INCR read issued right after a WRAP write; moved to 0xFE0
+xfield = "ARADDR"
+xval = "fe0"

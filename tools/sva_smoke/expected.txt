@@ -1,0 +1,7 @@
+55 p_and
+55 p_one
+55 p_or
+55 p_or1
+65 p_and
+65 p_hold
+65 p_one

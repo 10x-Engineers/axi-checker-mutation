@@ -1,0 +1,408 @@
+{
+  "checkers": "llm_sonnet",
+  "noise": {},
+  "rows": [
+    {
+      "id": "aw-valid-drop",
+      "class": "handshake",
+      "clauses": [
+        "HS_VALID_HOLD"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_hs_awvalid_hold @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "w-valid-drop",
+      "class": "handshake",
+      "clauses": [
+        "HS_VALID_HOLD"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_hs_wvalid_hold @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "b-valid-drop",
+      "class": "handshake",
+      "clauses": [
+        "HS_VALID_HOLD"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_hs_bvalid_hold @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "ar-valid-drop",
+      "class": "handshake",
+      "clauses": [
+        "HS_VALID_HOLD"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_hs_arvalid_hold @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "r-valid-drop",
+      "class": "handshake",
+      "clauses": [
+        "HS_VALID_HOLD"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_hs_rvalid_hold @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "aw-addr-unstable",
+      "class": "stability",
+      "clauses": [
+        "HS_INFO_STABLE"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_hs_aw_payload_stable @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "w-data-unstable",
+      "class": "stability",
+      "clauses": [
+        "HS_INFO_STABLE"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_hs_w_payload_stable @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "b-resp-unstable",
+      "class": "stability",
+      "clauses": [
+        "HS_INFO_STABLE"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_hs_b_payload_stable @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "ar-len-unstable",
+      "class": "stability",
+      "clauses": [
+        "HS_INFO_STABLE"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_hs_ar_payload_stable @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "r-data-unstable",
+      "class": "stability",
+      "clauses": [
+        "HS_INFO_STABLE"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_hs_r_payload_stable @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "awburst-reserved",
+      "class": "burst",
+      "clauses": [
+        "BURST_RESERVED"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_aw_burst_not_reserved @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "arburst-reserved",
+      "class": "burst",
+      "clauses": [
+        "BURST_RESERVED"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_ar_burst_not_reserved @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "aw-wrap-len3",
+      "class": "burst",
+      "clauses": [
+        "WRAP_LEN"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_aw_wrap_len @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "ar-fixed-len32",
+      "class": "burst",
+      "clauses": [
+        "FIXED_LEN"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_ar_fixed_len @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "ar-4kb-cross",
+      "class": "burst",
+      "clauses": [
+        "NO_4KB_CROSS"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_ar_no_4kb_cross @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "wlast-early",
+      "class": "last",
+      "clauses": [
+        "WLAST",
+        "EARLY_TERM"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_w_no_early_last @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "wlast-missing",
+      "class": "last",
+      "clauses": [
+        "WLAST"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_w_last_on_final_beat @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "rlast-early",
+      "class": "last",
+      "clauses": [
+        "RLAST",
+        "EARLY_TERM"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_r_no_early_last @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "rlast-missing",
+      "class": "last",
+      "clauses": [
+        "RLAST"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_r_last_on_final_beat @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "exokay-normal-write",
+      "class": "response",
+      "clauses": [
+        "EXOKAY_WRITE"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_b_exokay_only_exclusive @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "exokay-normal-read",
+      "class": "response",
+      "clauses": [
+        "EXOKAY_READ"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_r_exokay_only_exclusive @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "excl-bytes-not-pow2",
+      "class": "exclusive",
+      "clauses": [
+        "EXCL_POW2"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_aw_excl_bytes @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "excl-misaligned",
+      "class": "exclusive",
+      "clauses": [
+        "EXCL_ALIGN"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_aw_excl_aligned @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "excl-len32",
+      "class": "exclusive",
+      "clauses": [
+        "EXCL_LEN"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_ar_excl_len @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "r-before-ar-hs",
+      "class": "ordering",
+      "clauses": [
+        "DEP_R_AFTER_AR"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_r_id_matches_outstanding_ar @ +2 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "b-before-wlast-hs",
+      "class": "ordering",
+      "clauses": [
+        "DEP_B_AFTER_W"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_b_after_last_w_and_in_order @ +1 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "b-before-aw-hs",
+      "class": "ordering",
+      "clauses": [
+        "DEP_B_AFTER_W"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_b_id_matches_outstanding_aw @ +5 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "rid-not-outstanding",
+      "class": "ordering",
+      "clauses": [
+        "DEP_R_AFTER_AR"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_r_id_matches_outstanding_ar @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "bid-not-outstanding",
+      "class": "ordering",
+      "clauses": [
+        "DEP_B_AFTER_W"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_b_id_matches_outstanding_aw @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "exokay-write-unmonitored",
+      "class": "exclusive",
+      "clauses": [
+        "EXCL_FAIL_OKAY"
+      ],
+      "verdict": "MISSED",
+      "detail": "no new rule fired",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "exokay-after-intervening-write",
+      "class": "exclusive",
+      "clauses": [
+        "EXCL_FAIL_OKAY"
+      ],
+      "verdict": "MISSED",
+      "detail": "no new rule fired",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "excl-read-mixed-resp",
+      "class": "exclusive",
+      "clauses": [
+        "EXCL_READ_NO_MIX"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_r_excl_no_okay_exokay_mix @ +1 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "excl-write-before-read-done",
+      "class": "exclusive",
+      "clauses": [
+        "EXCL_WRITE_AFTER_READ"
+      ],
+      "verdict": "MISSED",
+      "detail": "no new rule fired",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "same-id-read-swap",
+      "class": "ordering",
+      "clauses": [
+        "SAMEID_ORDER"
+      ],
+      "verdict": "LATE",
+      "detail": "downstream data mismatch: obs_scoreboard [?] @ +0 cyc",
+      "pre_injection_fires": []
+    },
+    {
+      "id": "ar-4kb-cross-after-wrap",
+      "class": "burst",
+      "clauses": [
+        "NO_4KB_CROSS"
+      ],
+      "verdict": "CORRECT",
+      "detail": "a_ar_no_4kb_cross @ +0 cyc",
+      "pre_injection_fires": []
+    }
+  ],
+  "legal": [
+    {
+      "id": "aw-stall-w-leads",
+      "why": "A2.3.2 p.31: the Subordinate can assert WREADY before AWVALID; W may lead AW",
+      "verdict": "CLEAN",
+      "detail": ""
+    },
+    {
+      "id": "w-stall",
+      "why": "A2.3.2 p.31: the Subordinate can wait for AWVALID or WVALID before asserting WREADY",
+      "verdict": "CLEAN",
+      "detail": ""
+    },
+    {
+      "id": "b-stall",
+      "why": "A2.3.2 p.31: the Manager can wait for BVALID before asserting BREADY",
+      "verdict": "CLEAN",
+      "detail": ""
+    },
+    {
+      "id": "ar-stall",
+      "why": "A2.3.2 p.31: the Subordinate can wait for ARVALID before asserting ARREADY",
+      "verdict": "CLEAN",
+      "detail": ""
+    },
+    {
+      "id": "r-stall-mid-burst",
+      "why": "A2.3.2 p.31: the Manager can wait for RVALID before asserting RREADY",
+      "verdict": "CLEAN",
+      "detail": ""
+    },
+    {
+      "id": "excl-read-exokay",
+      "why": "A6.3.2 p.111 / A6.3.4 p.112: a monitoring Subordinate answers an exclusive read EXOKAY",
+      "verdict": "CLEAN",
+      "detail": ""
+    },
+    {
+      "id": "excl-pair-succeeds",
+      "why": "A6.3.1 p.110: exclusive read then exclusive write, same ID and address, no intervening write: the write succeeds with EXOKAY",
+      "verdict": "CLEAN",
+      "detail": ""
+    },
+    {
+      "id": "diff-id-read-swap",
+      "why": "A5.3 p.93: no ordering guarantee between transactions with different IDs",
+      "verdict": "CLEAN",
+      "detail": ""
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Build and run the lab testbench for one checker set, optionally with one mutant.
 
-    python3 tb/run.py --checkers hand_written                  # clean run
-    python3 tb/run.py --checkers hand_written --plusarg +mut_chan=AW +mut_op=VALID_DROP
+    python3 tb/run.py --checkers llm_opus                      # clean run
+    python3 tb/run.py --checkers llm_opus --plusarg +mut_chan=AW +mut_op=VALID_DROP
 
 Each checker set gets its own build directory, so switching sets never recompiles
 another set's snapshot. Mutants are plusargs, so one build serves the whole catalog.

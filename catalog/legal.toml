@@ -1,0 +1,80 @@
+# Legal perturbations: each is permitted by the spec, so a checker that fires on one
+# reports a false positive. Same fields as mutants.toml; `why` cites what makes it legal.
+
+[[perturbation]]
+id = "aw-stall-w-leads"
+why = "A2.3.2 p.31: the Subordinate can assert WREADY before AWVALID; W may lead AW"
+chan = "AW"
+op = "STALL"
+stall = 12
+tfield = "AWADDR"
+tval = "140"
+
+[[perturbation]]
+id = "w-stall"
+why = "A2.3.2 p.31: the Subordinate can wait for AWVALID or WVALID before asserting WREADY"
+chan = "W"
+op = "STALL"
+stall = 6
+nth = 3
+
+[[perturbation]]
+id = "b-stall"
+why = "A2.3.2 p.31: the Manager can wait for BVALID before asserting BREADY"
+chan = "B"
+op = "STALL"
+stall = 10
+
+[[perturbation]]
+id = "ar-stall"
+why = "A2.3.2 p.31: the Subordinate can wait for ARVALID before asserting ARREADY"
+chan = "AR"
+op = "STALL"
+stall = 10
+tfield = "ARADDR"
+tval = "1000"
+
+[[perturbation]]
+id = "r-stall-mid-burst"
+why = "A2.3.2 p.31: the Manager can wait for RVALID before asserting RREADY"
+chan = "R"
+op = "STALL"
+stall = 10
+nth = 20
+
+[[perturbation]]
+id = "excl-read-exokay"
+why = "A6.3.2 p.111 / A6.3.4 p.112: a monitoring Subordinate answers an exclusive read EXOKAY"
+chan = "R"
+op = "OVERRIDE"
+tfield = "RID"
+tval = "5"
+xfield = "RRESP"
+xval = "1"
+
+[[perturbation]]
+id = "excl-pair-succeeds"
+why = "A6.3.1 p.110: exclusive read then exclusive write, same ID and address, no intervening write: the write succeeds with EXOKAY"
+chan = "B"
+op = "OVERRIDE"
+tfield = "BID"
+tval = "5"
+xfield = "BRESP"
+xval = "1"
+  [perturbation.companion]
+  chan = "R"
+  op = "OVERRIDE"
+  tfield = "RID"
+  tval = "5"
+  xfield = "RRESP"
+  xval = "1"
+
+[[perturbation]]
+id = "diff-id-read-swap"
+why = "A5.3 p.93: no ordering guarantee between transactions with different IDs"
+chan = "R"
+op = "SWAP"
+tfield = "RID"
+tval = "d"            # ID 13's burst returned after ID 14's
+xfield = "RLAST"
+xval = "1"
